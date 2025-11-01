@@ -34,7 +34,9 @@ elif sys.platform.startswith("darwin"):
 else:
     lib_filename = "libroutex.so"
 
-lib_path = Path(__file__).with_name(lib_filename)
+wheel_lib_path = Path(__file__).parent.parent / ".routex.mesonpy.libs" / lib_filename
+local_lib_path = Path(__file__).with_name(lib_filename)
+lib_path = wheel_lib_path if wheel_lib_path.exists() else local_lib_path
 lib = cdll.LoadLibrary(str(lib_path))
 
 LoggingCallback = CFUNCTYPE(None, c_void_p, c_int, c_char_p, c_char_p)

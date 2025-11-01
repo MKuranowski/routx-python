@@ -1,4 +1,7 @@
 /builddir
 /dist
+/routex/libroutex.dll
+/routex/libroutex.dylib
+/routex/libroutex.so
 /subprojects/*
 !/subprojects/*.wrap
