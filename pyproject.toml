@@ -1,0 +1,10 @@
+[build-system]
+requires = ["meson-python"]
+build-backend = "mesonpy"
+
+[project]
+name = "routex"
+version = "0.1.0"
+requires-python = "~=3.10"
+dependencies = []
+authors = [{name = "Mikołaj Kuranowski", email = "mkuranowski@gmail.com"}]
