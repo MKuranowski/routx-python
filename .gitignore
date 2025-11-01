@@ -5,3 +5,4 @@
 /routex/libroutex.so
 /subprojects/*
 !/subprojects/*.wrap
+*.pyc

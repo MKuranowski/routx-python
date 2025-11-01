@@ -1,14 +1,226 @@
 # (c) Copyright 2025 Mikołaj Kuranowski
 # SPDX-License-Identifier: MIT
 
+import logging
+import sys
 from collections.abc import Iterator, MutableMapping
-from ctypes import byref, cast, pointer
+from ctypes import (
+    CFUNCTYPE,
+    POINTER,
+    Structure,
+    Union,
+    byref,
+    c_bool,
+    c_char,
+    c_char_p,
+    c_float,
+    c_int,
+    c_int64,
+    c_size_t,
+    c_uint32,
+    c_void_p,
+)
+from ctypes import cast as c_cast
+from ctypes import cdll, pointer
 from dataclasses import dataclass
 from enum import IntEnum
 from os import PathLike
-from typing import Final, NamedTuple, Self
+from pathlib import Path
+from typing import Any, Final, NamedTuple, Self
 
-from . import c
+# Figure out where the shared library is and get a handle to it
+
+if sys.platform.startswith("win32"):
+    lib_filename = "libroutex.dll"
+elif sys.platform.startswith("darwin"):
+    lib_filename = "libroutex.dylib"
+else:
+    lib_filename = "libroutex.so"
+
+wheel_lib_path = Path(__file__).parent.parent / ".routex.mesonpy.libs" / lib_filename
+local_lib_path = Path(__file__).with_name(lib_filename)
+lib_path = wheel_lib_path if wheel_lib_path.exists() else local_lib_path
+lib = cdll.LoadLibrary(str(lib_path))
+
+# C-level definitions
+
+c_char_p_p = POINTER(c_char_p)
+
+_Graph_p = c_void_p
+_GraphIterator_p = c_void_p
+_KDTree_p = c_void_p
+_LoggingCallback = CFUNCTYPE(None, c_void_p, c_int, c_char_p, c_char_p)
+_LoggingFlushCallback = CFUNCTYPE(None, c_void_p)
+
+
+class _Node(Structure):
+    _fields_ = [
+        ("id", c_int64),
+        ("osm_id", c_int64),
+        ("lat", c_float),
+        ("lon", c_float),
+    ]
+
+
+class _Edge(Structure):
+    _fields_ = [
+        ("to", c_int64),
+        ("cost", c_float),
+    ]
+
+
+class _OsmProfilePenalty(Structure):
+    _fields_ = [
+        ("key", c_char_p),
+        ("value", c_char_p),
+        ("penalty", c_float),
+    ]
+
+
+class _OsmProfile(Structure):
+    _fields_ = [
+        ("name", c_char_p),
+        ("penalties", POINTER(_OsmProfilePenalty)),
+        ("penalties_len", c_size_t),
+        ("access", c_char_p_p),
+        ("access_len", c_size_t),
+        ("disallow_motorroad", c_bool),
+        ("disable_restrictions", c_bool),
+    ]
+
+
+class _OsmOptions(Structure):
+    _fields_ = [
+        ("profile", POINTER(_OsmProfile)),
+        ("file_format", c_int),
+        ("bbox", c_float * 4),
+    ]
+
+
+class _RouteResultOk(Structure):
+    _fields_ = [
+        ("nodes", POINTER(c_int64)),
+        ("len", c_uint32),
+        ("capacity", c_uint32),
+    ]
+
+
+class _RouteResultInvalidRef(Structure):
+    _fields_ = [
+        ("invalid_node_id", c_int64),
+    ]
+
+
+class _RouteResultUnion(Union):
+    _fields_ = [
+        ("as_ok", _RouteResultOk),
+        ("as_invalid_reference", _RouteResultInvalidRef),
+    ]
+
+
+class _RouteResult(Structure):
+    _anonymous_ = ["u"]
+    _fields_ = [
+        ("u", _RouteResultUnion),
+        ("type", c_int),
+    ]
+
+
+lib.routex_set_logging_callback.argtypes = [
+    _LoggingCallback,
+    _LoggingFlushCallback,
+    c_void_p,
+    c_int,
+]
+lib.routex_set_logging_callback.restype = None
+
+lib.routex_graph_new.argtypes = []
+lib.routex_graph_new.restype = _Graph_p
+
+lib.routex_graph_delete.argtypes = [_Graph_p]
+lib.routex_graph_delete.restype = None
+
+lib.routex_graph_get_nodes.argtypes = [_Graph_p, POINTER(_GraphIterator_p)]
+lib.routex_graph_get_nodes.restype = c_size_t
+
+lib.routex_graph_iterator_next.argtypes = [_GraphIterator_p]
+lib.routex_graph_iterator_next.restype = _Node
+
+lib.routex_graph_iterator_delete.argtypes = [_GraphIterator_p]
+lib.routex_graph_iterator_delete.restype = None
+
+lib.routex_graph_get_node.argtypes = [_Graph_p, c_int64]
+lib.routex_graph_get_node.restype = _Node
+
+lib.routex_graph_set_node.argtypes = [_Graph_p, _Node]
+lib.routex_graph_set_node.restype = bool
+
+lib.routex_graph_delete_node.argtypes = [_Graph_p, c_int64]
+lib.routex_graph_delete_node.restype = bool
+
+lib.routex_graph_find_nearest_node.argtypes = [_Graph_p, c_float, c_float]
+lib.routex_graph_find_nearest_node.restype = _Node
+
+lib.routex_graph_get_edges.argtypes = [_Graph_p, c_int64, POINTER(POINTER(_Edge))]
+lib.routex_graph_get_edges.restype = c_size_t
+
+lib.routex_graph_get_edge.argtypes = [_Graph_p, c_int64, c_int64]
+lib.routex_graph_get_edge.restype = c_float
+
+lib.routex_graph_set_edge.argtypes = [_Graph_p, c_int64, _Edge]
+lib.routex_graph_set_edge.restype = c_bool
+
+lib.routex_graph_delete_edge.argtypes = [_Graph_p, c_int64, c_int64]
+lib.routex_graph_delete_edge.restype = c_bool
+
+lib.routex_graph_add_from_osm_file.argtypes = [_Graph_p, POINTER(_OsmOptions), c_char_p]
+lib.routex_graph_add_from_osm_file.restype = c_bool
+
+lib.routex_graph_add_from_osm_memory.argtypes = [
+    _Graph_p,
+    POINTER(_OsmOptions),
+    c_char_p,
+    c_size_t,
+]
+lib.routex_graph_add_from_osm_memory.restype = c_bool
+
+lib.routex_find_route.argtypes = [_Graph_p, c_int64, c_int64, c_size_t]
+lib.routex_find_route.restype = _RouteResult
+
+lib.routex_find_route_without_turn_around.argtypes = [_Graph_p, c_int64, c_int64, c_size_t]
+lib.routex_find_route_without_turn_around.restype = _RouteResult
+
+lib.routex_route_result_delete.argtypes = [_RouteResult]
+lib.routex_route_result_delete.restype = None
+
+lib.routex_kd_tree_new.argtypes = [_Graph_p]
+lib.routex_kd_tree_new.restype = _KDTree_p
+
+lib.routex_kd_tree_delete.argtypes = [_KDTree_p]
+lib.routex_kd_tree_delete.restype = None
+
+lib.routex_kd_tree_find_nearest_node.argtypes = [_KDTree_p, c_float, c_float]
+lib.routex_kd_tree_find_nearest_node.restype = _Node
+
+lib.routex_earth_distance.argtypes = [c_float, c_float, c_float, c_float]
+lib.routex_earth_distance.restype = c_float
+
+
+# Wire up logging
+
+
+@_LoggingCallback
+def _builtin_log_handler(_: Any, level: int, target_b: bytes, message_b: bytes) -> None:
+    target = target_b.decode("utf-8").replace("::", ".")
+    message = message_b.decode("utf-8")
+    logging.getLogger(target).log(level, message)
+
+
+lib.routex_set_logging_callback(_builtin_log_handler, _LoggingFlushCallback(), None, 10)
+
+
+# High-level Python definitions
+
 
 DEFAULT_STEP_LIMIT: Final[int] = 1000000
 """Recommended A* step limit for Graph.find_route."""
@@ -368,14 +580,16 @@ class Graph(MutableMapping[int, Node]):
     Edge access is implemented through custom get_edges, get_edge, set_edge and delete_edge methods.
     """
 
+    handle: _Graph_p
+
     def __init__(self) -> None:
-        self.handle = c.lib.routex_graph_new()
+        self.handle = lib.routex_graph_new()
 
     def __del__(self) -> None:
-        c.lib.routex_graph_delete(self.handle)
+        lib.routex_graph_delete(self.handle)
 
     def __getitem__(self, key: int) -> Node:
-        n = _node_from_c(c.lib.routex_graph_get_node(self.handle, key))
+        n = _node_from_c(lib.routex_graph_get_node(self.handle, key))
         if n.id == 0:
             raise KeyError(key)
         return n
@@ -383,24 +597,24 @@ class Graph(MutableMapping[int, Node]):
     def __setitem__(self, key: int, value: Node) -> None:
         if key != value.id:
             raise ValueError(f"attempt to save node with id {value.id} under different id, {key}")
-        c.lib.routex_graph_set_node(self.handle, _node_to_c(value))
+        lib.routex_graph_set_node(self.handle, _node_to_c(value))
 
     def __delitem__(self, key: int) -> None:
-        deleted = c.lib.routex_graph_delete_node(self.handle, key)
+        deleted = lib.routex_graph_delete_node(self.handle, key)
         if not deleted:
             raise KeyError(key)
 
     def __iter__(self) -> Iterator[int]:
-        it_handle = c.GraphIterator_p()
+        it_handle = _GraphIterator_p()
         try:
-            c.lib.routex_graph_get_nodes(self.handle, byref(it_handle))
-            while n := _node_from_c(c.lib.routex_graph_iterator_next(it_handle)):
+            lib.routex_graph_get_nodes(self.handle, byref(it_handle))
+            while n := _node_from_c(lib.routex_graph_iterator_next(it_handle)):
                 yield n.id
         finally:
-            c.lib.routex_graph_iterator_delete(it_handle)
+            lib.routex_graph_iterator_delete(it_handle)
 
     def __len__(self) -> int:
-        return c.lib.routex_graph_get_nodes(self.handle, None).value
+        return lib.routex_graph_get_nodes(self.handle, None)
 
     def find_nearest_node(self, lat: float, lon: float) -> Node:
         """
@@ -412,15 +626,15 @@ class Graph(MutableMapping[int, Node]):
 
         If the graph is empty, raises KeyError.
         """
-        n = _node_from_c(c.lib.routex_graph_find_nearest_node(self.handle, lat, lon))
+        n = _node_from_c(lib.routex_graph_find_nearest_node(self.handle, lat, lon))
         if not n:
             raise KeyError("find_nearest_node on empty Graph")
         return n
 
     def get_edges(self, from_: int) -> list[Edge]:
         """Gets all outgoing edges from a node with a given id."""
-        c_ptr = c.POINTER(c.Edge)()
-        c_ptr_len = c.lib.routex_graph_get_edges(self.handle, from_, byref(c_ptr)).value
+        c_ptr = POINTER(_Edge)()
+        c_ptr_len = lib.routex_graph_get_edges(self.handle, from_, byref(c_ptr))
         return [_edge_from_c(c_ptr[i]) for i in range(c_ptr_len)]
 
     def get_edge(self, from_: int, to: int) -> float:
@@ -428,8 +642,7 @@ class Graph(MutableMapping[int, Node]):
         Gets the cost of traversing an edge between nodes with provided ids.
         Returns positive infinity when the provided edge does not exist.
         """
-        return c.lib.routex_graph_get_edge(self.handle, from_, to).value
-
+        return lib.routex_graph_get_edge(self.handle, from_, to)
 
     def set_edge(self, from_: int, to: int, cost: float) -> bool:
         """
@@ -443,7 +656,7 @@ class Graph(MutableMapping[int, Node]):
 
         Note that given an `Edge` object, this method may be called with `g.set_edge(from_, *edge)`.
         """
-        return c.lib.routex_graph_set_edge(self.handle, from_, c.Edge(to=to, cost=cost)).value
+        return lib.routex_graph_set_edge(self.handle, from_, _Edge(to=to, cost=cost))
 
     def delete_edge(self, from_: int, to: int, /, missing_ok: bool = True) -> None:
         """
@@ -451,7 +664,7 @@ class Graph(MutableMapping[int, Node]):
 
         If no such edge exists and `missing_ok` is set to `False`, raises KeyError.
         """
-        removed = c.lib.routex_graph_delete_edge(self.handle, from_, to).value
+        removed = lib.routex_graph_delete_edge(self.handle, from_, to)
         if not removed and not missing_ok:
             raise KeyError((from_, to))
 
@@ -477,22 +690,23 @@ class Graph(MutableMapping[int, Node]):
         which is usually very time consuming, especially on large datasets.
         """
         func = (
-            c.lib.routex_find_route_without_turn_around if without_turn_around else c.lib.find_route
+            lib.routex_find_route_without_turn_around
+            if without_turn_around
+            else lib.routex_find_route
         )
         res = func(self.handle, from_, to, step_limit)
         try:
-            res_type = res.type_.value
-            if res_type == 0:
+            if res.type == 0:
                 # TODO: Could we return a memoryview with type "q"?
-                return [res.union.as_ok.nodes[i].value for i in range(res.union.as_ok.len.value)]
-            elif res_type == 1:
-                raise KeyError(res.union.as_invalid_reference.invalid_node_id.value)
-            elif res_type == 2:
+                return [res.as_ok.nodes[i] for i in range(res.as_ok.len)]
+            elif res.type == 1:
+                raise KeyError(res.as_invalid_reference.invalid_node_id)
+            elif res.type == 2:
                 raise StepLimitExceeded()
             else:
-                raise RuntimeError(f"routex_find_route returned unexpected result type: {res_type}")
+                raise RuntimeError(f"routex_find_route returned unexpected result type: {res.type}")
         finally:
-            c.lib.routex_route_result_delete(res)
+            lib.routex_route_result_delete(res)
 
     def add_from_osm_file(
         self,
@@ -518,11 +732,11 @@ class Graph(MutableMapping[int, Node]):
         if isinstance(filename, str):
             filename = filename.encode("utf-8")
 
-        ok = c.lib.routex_graph_add_from_osm_file(
+        ok = lib.routex_graph_add_from_osm_file(
             self.handle,
             _osm_options_to_c(profile, format, bbox),
             filename,
-        ).value
+        )
         if not ok:
             raise OsmLoadingError()
 
@@ -549,12 +763,13 @@ class Graph(MutableMapping[int, Node]):
         Ignored if all values are zero (default).
         """
         mv = mv.cast("B")
-        ok = c.lib.routex_graph_add_from_osm_memory(
+        ptr = (c_char * len(mv)).from_buffer(mv)
+        ok = lib.routex_graph_add_from_osm_memory(
             self.handle,
             _osm_options_to_c(profile, format, bbox),
-            c.c_ubyte_p.from_buffer(mv),
+            ptr,
             len(mv),
-        ).value
+        )
         if not ok:
             raise OsmLoadingError()
 
@@ -566,64 +781,67 @@ class KDTree:
 
     Create with `KDTree.build`, as the constructors takes a raw C handler.
     """
-    def __init__(self, handle: c.KDTree_p) -> None:
-        self.handle = handle
+
+    _handle: _KDTree_p
+
+    def __init__(self, handle: _KDTree_p) -> None:
+        self._handle = handle
 
     def __del__(self) -> None:
-        c.lib.routex_kd_tree_delete(self.handle)
+        lib.routex_kd_tree_delete(self._handle)
 
     @classmethod
     def build(cls, graph: Graph) -> Self:
         """
         Builds a k-d tree with all canonical (`id == osm_id`) nodes contained in the provided graph.
         """
-        return cls(c.lib.routex_kd_tree_new(graph.handle))
+        return cls(lib.routex_kd_tree_new(graph.handle))
 
-    def find_nearest_node(self, lat: float, lon: float) -> int:
+    def find_nearest_node(self, lat: float, lon: float) -> Node:
         """
         Find the closest node to the provided position and returns its id.
 
         Raises KeyError when the k-d tree contains no nodes.
         """
-        id = c.lib.routex_kd_tree_find_nearest_node(self.handle, lat, lon).value
-        if id == 0:
+        nd = _node_from_c(lib.routex_kd_tree_find_nearest_node(self._handle, lat, lon))
+        if nd.id == 0:
             raise KeyError("find_nearest_node on empty KDTree")
-        return id
+        return nd
 
 
 def earth_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    return c.lib.routex_earth_distance(lat1, lon1, lat2, lon2).value
+    return lib.routex_earth_distance(lat1, lon1, lat2, lon2)
 
 
-def _node_to_c(o: Node) -> c.Node:
-    return c.Node(id=o.id, osm_id=o.osm_id, lat=o.lat, lon=o.lon)
+def _node_to_c(o: Node) -> _Node:
+    return _Node(id=o.id, osm_id=o.osm_id, lat=o.lat, lon=o.lon)
 
 
-def _node_from_c(o: c.Node) -> Node:
-    return Node(id=o.id.value, osm_id=o.osm_id.value, lat=o.lat.value, lon=o.lon.value)
+def _node_from_c(o: _Node) -> Node:
+    return Node(id=o.id, osm_id=o.osm_id, lat=o.lat, lon=o.lon)
 
 
-def _edge_from_c(o: c.Edge) -> Edge:
-    return Edge(to=o.to.value, cost=o.cost.value)
+def _edge_from_c(o: _Edge) -> Edge:
+    return Edge(to=o.to, cost=o.cost)
 
 
 def _osm_profile_to_c(profile: OsmProfile | OsmCustomProfile):
     if isinstance(profile, OsmProfile):
-        return cast(c.c_void_p(profile.value), c.OsmProfile_p)
+        return c_cast(c_void_p(profile.value), POINTER(_OsmProfile))
 
-    c_profile = c.OsmProfile()
+    c_profile = _OsmProfile()
     c_profile.name = profile.name.encode("utf-8")
 
-    c_profile.penalties = (c.OsmProfilePenalty * len(profile.penalties))()
+    c_profile.penalties = (_OsmProfilePenalty * len(profile.penalties))()
     for i, (key, value, penalty) in enumerate(profile.penalties):
-        c_profile.penalties[i] = c.OsmProfilePenalty(
+        c_profile.penalties[i] = _OsmProfilePenalty(
             key=key.encode("utf-8"),
             value=value.encode("utf-8"),
             penalty=penalty,
         )
     c_profile.penalties_len = len(profile.penalties)
 
-    c_profile.access = (c.c_char_p * len(profile.access))()
+    c_profile.access = (c_char_p * len(profile.access))()
     for i, access_key in enumerate(profile.access):
         c_profile.access[i] = access_key.encode("utf-8")
     c_profile.access_len = len(profile.access)
@@ -639,7 +857,7 @@ def _osm_options_to_c(
     format: OsmFormat,
     bbox: tuple[float, float, float, float],
 ):
-    o = c.OsmOptions()
+    o = _OsmOptions()
     o.profile = _osm_profile_to_c(profile)
     o.file_format = format.value
     o.bbox[0] = bbox[0]
