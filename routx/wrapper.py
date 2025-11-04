@@ -26,7 +26,9 @@ from dataclasses import dataclass
 from enum import IntEnum
 from os import PathLike
 from pathlib import Path
-from typing import Any, Final, NamedTuple, Self
+from typing import Any, Final, NamedTuple
+
+from typing_extensions import Self
 
 # Figure out where the shared library is and get a handle to it
 
