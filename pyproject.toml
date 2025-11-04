@@ -11,3 +11,13 @@ authors = [{name = "Mikołaj Kuranowski", email = "mkuranowski@gmail.com"}]
 
 [tool.meson-python.args]
 install = ['--tags=python-runtime,runtime']
+
+[tool.black]
+line-length = 100
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.pyright]
+typeCheckingMode = "strict"
