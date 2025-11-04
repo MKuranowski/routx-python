@@ -31,13 +31,13 @@ from typing import Any, Final, NamedTuple, Self
 # Figure out where the shared library is and get a handle to it
 
 if sys.platform.startswith("win32"):
-    lib_filename = "libroutex.dll"
+    lib_filename = "libroutx.dll"
 elif sys.platform.startswith("darwin"):
-    lib_filename = "libroutex.dylib"
+    lib_filename = "libroutx.dylib"
 else:
-    lib_filename = "libroutex.so"
+    lib_filename = "libroutx.so"
 
-wheel_lib_path = Path(__file__).parent.parent / ".routex.mesonpy.libs" / lib_filename
+wheel_lib_path = Path(__file__).parent.parent / ".routx.mesonpy.libs" / lib_filename
 local_lib_path = Path(__file__).with_name(lib_filename)
 lib_path = wheel_lib_path if wheel_lib_path.exists() else local_lib_path
 lib = cdll.LoadLibrary(str(lib_path))
@@ -126,84 +126,84 @@ class _RouteResult(Structure):
     ]
 
 
-lib.routex_set_logging_callback.argtypes = [
+lib.routx_set_logging_callback.argtypes = [
     _LoggingCallback,
     _LoggingFlushCallback,
     c_void_p,
     c_int,
 ]
-lib.routex_set_logging_callback.restype = None
+lib.routx_set_logging_callback.restype = None
 
-lib.routex_graph_new.argtypes = []
-lib.routex_graph_new.restype = _Graph_p
+lib.routx_graph_new.argtypes = []
+lib.routx_graph_new.restype = _Graph_p
 
-lib.routex_graph_delete.argtypes = [_Graph_p]
-lib.routex_graph_delete.restype = None
+lib.routx_graph_delete.argtypes = [_Graph_p]
+lib.routx_graph_delete.restype = None
 
-lib.routex_graph_get_nodes.argtypes = [_Graph_p, POINTER(_GraphIterator_p)]
-lib.routex_graph_get_nodes.restype = c_size_t
+lib.routx_graph_get_nodes.argtypes = [_Graph_p, POINTER(_GraphIterator_p)]
+lib.routx_graph_get_nodes.restype = c_size_t
 
-lib.routex_graph_iterator_next.argtypes = [_GraphIterator_p]
-lib.routex_graph_iterator_next.restype = _Node
+lib.routx_graph_iterator_next.argtypes = [_GraphIterator_p]
+lib.routx_graph_iterator_next.restype = _Node
 
-lib.routex_graph_iterator_delete.argtypes = [_GraphIterator_p]
-lib.routex_graph_iterator_delete.restype = None
+lib.routx_graph_iterator_delete.argtypes = [_GraphIterator_p]
+lib.routx_graph_iterator_delete.restype = None
 
-lib.routex_graph_get_node.argtypes = [_Graph_p, c_int64]
-lib.routex_graph_get_node.restype = _Node
+lib.routx_graph_get_node.argtypes = [_Graph_p, c_int64]
+lib.routx_graph_get_node.restype = _Node
 
-lib.routex_graph_set_node.argtypes = [_Graph_p, _Node]
-lib.routex_graph_set_node.restype = bool
+lib.routx_graph_set_node.argtypes = [_Graph_p, _Node]
+lib.routx_graph_set_node.restype = bool
 
-lib.routex_graph_delete_node.argtypes = [_Graph_p, c_int64]
-lib.routex_graph_delete_node.restype = bool
+lib.routx_graph_delete_node.argtypes = [_Graph_p, c_int64]
+lib.routx_graph_delete_node.restype = bool
 
-lib.routex_graph_find_nearest_node.argtypes = [_Graph_p, c_float, c_float]
-lib.routex_graph_find_nearest_node.restype = _Node
+lib.routx_graph_find_nearest_node.argtypes = [_Graph_p, c_float, c_float]
+lib.routx_graph_find_nearest_node.restype = _Node
 
-lib.routex_graph_get_edges.argtypes = [_Graph_p, c_int64, POINTER(POINTER(_Edge))]
-lib.routex_graph_get_edges.restype = c_size_t
+lib.routx_graph_get_edges.argtypes = [_Graph_p, c_int64, POINTER(POINTER(_Edge))]
+lib.routx_graph_get_edges.restype = c_size_t
 
-lib.routex_graph_get_edge.argtypes = [_Graph_p, c_int64, c_int64]
-lib.routex_graph_get_edge.restype = c_float
+lib.routx_graph_get_edge.argtypes = [_Graph_p, c_int64, c_int64]
+lib.routx_graph_get_edge.restype = c_float
 
-lib.routex_graph_set_edge.argtypes = [_Graph_p, c_int64, _Edge]
-lib.routex_graph_set_edge.restype = c_bool
+lib.routx_graph_set_edge.argtypes = [_Graph_p, c_int64, _Edge]
+lib.routx_graph_set_edge.restype = c_bool
 
-lib.routex_graph_delete_edge.argtypes = [_Graph_p, c_int64, c_int64]
-lib.routex_graph_delete_edge.restype = c_bool
+lib.routx_graph_delete_edge.argtypes = [_Graph_p, c_int64, c_int64]
+lib.routx_graph_delete_edge.restype = c_bool
 
-lib.routex_graph_add_from_osm_file.argtypes = [_Graph_p, POINTER(_OsmOptions), c_char_p]
-lib.routex_graph_add_from_osm_file.restype = c_bool
+lib.routx_graph_add_from_osm_file.argtypes = [_Graph_p, POINTER(_OsmOptions), c_char_p]
+lib.routx_graph_add_from_osm_file.restype = c_bool
 
-lib.routex_graph_add_from_osm_memory.argtypes = [
+lib.routx_graph_add_from_osm_memory.argtypes = [
     _Graph_p,
     POINTER(_OsmOptions),
     c_char_p,
     c_size_t,
 ]
-lib.routex_graph_add_from_osm_memory.restype = c_bool
+lib.routx_graph_add_from_osm_memory.restype = c_bool
 
-lib.routex_find_route.argtypes = [_Graph_p, c_int64, c_int64, c_size_t]
-lib.routex_find_route.restype = _RouteResult
+lib.routx_find_route.argtypes = [_Graph_p, c_int64, c_int64, c_size_t]
+lib.routx_find_route.restype = _RouteResult
 
-lib.routex_find_route_without_turn_around.argtypes = [_Graph_p, c_int64, c_int64, c_size_t]
-lib.routex_find_route_without_turn_around.restype = _RouteResult
+lib.routx_find_route_without_turn_around.argtypes = [_Graph_p, c_int64, c_int64, c_size_t]
+lib.routx_find_route_without_turn_around.restype = _RouteResult
 
-lib.routex_route_result_delete.argtypes = [_RouteResult]
-lib.routex_route_result_delete.restype = None
+lib.routx_route_result_delete.argtypes = [_RouteResult]
+lib.routx_route_result_delete.restype = None
 
-lib.routex_kd_tree_new.argtypes = [_Graph_p]
-lib.routex_kd_tree_new.restype = _KDTree_p
+lib.routx_kd_tree_new.argtypes = [_Graph_p]
+lib.routx_kd_tree_new.restype = _KDTree_p
 
-lib.routex_kd_tree_delete.argtypes = [_KDTree_p]
-lib.routex_kd_tree_delete.restype = None
+lib.routx_kd_tree_delete.argtypes = [_KDTree_p]
+lib.routx_kd_tree_delete.restype = None
 
-lib.routex_kd_tree_find_nearest_node.argtypes = [_KDTree_p, c_float, c_float]
-lib.routex_kd_tree_find_nearest_node.restype = _Node
+lib.routx_kd_tree_find_nearest_node.argtypes = [_KDTree_p, c_float, c_float]
+lib.routx_kd_tree_find_nearest_node.restype = _Node
 
-lib.routex_earth_distance.argtypes = [c_float, c_float, c_float, c_float]
-lib.routex_earth_distance.restype = c_float
+lib.routx_earth_distance.argtypes = [c_float, c_float, c_float, c_float]
+lib.routx_earth_distance.restype = c_float
 
 
 # Wire up logging
@@ -216,7 +216,7 @@ def _builtin_log_handler(_: Any, level: int, target_b: bytes, message_b: bytes) 
     logging.getLogger(target).log(level, message)
 
 
-lib.routex_set_logging_callback(_builtin_log_handler, _LoggingFlushCallback(), None, 10)
+lib.routx_set_logging_callback(_builtin_log_handler, _LoggingFlushCallback(), None, 10)
 
 
 # High-level Python definitions
@@ -583,13 +583,13 @@ class Graph(MutableMapping[int, Node]):
     handle: _Graph_p
 
     def __init__(self) -> None:
-        self.handle = lib.routex_graph_new()
+        self.handle = lib.routx_graph_new()
 
     def __del__(self) -> None:
-        lib.routex_graph_delete(self.handle)
+        lib.routx_graph_delete(self.handle)
 
     def __getitem__(self, key: int) -> Node:
-        n = _node_from_c(lib.routex_graph_get_node(self.handle, key))
+        n = _node_from_c(lib.routx_graph_get_node(self.handle, key))
         if n.id == 0:
             raise KeyError(key)
         return n
@@ -597,24 +597,24 @@ class Graph(MutableMapping[int, Node]):
     def __setitem__(self, key: int, value: Node) -> None:
         if key != value.id:
             raise ValueError(f"attempt to save node with id {value.id} under different id, {key}")
-        lib.routex_graph_set_node(self.handle, _node_to_c(value))
+        lib.routx_graph_set_node(self.handle, _node_to_c(value))
 
     def __delitem__(self, key: int) -> None:
-        deleted = lib.routex_graph_delete_node(self.handle, key)
+        deleted = lib.routx_graph_delete_node(self.handle, key)
         if not deleted:
             raise KeyError(key)
 
     def __iter__(self) -> Iterator[int]:
         it_handle = _GraphIterator_p()
         try:
-            lib.routex_graph_get_nodes(self.handle, byref(it_handle))
-            while n := _node_from_c(lib.routex_graph_iterator_next(it_handle)):
+            lib.routx_graph_get_nodes(self.handle, byref(it_handle))
+            while n := _node_from_c(lib.routx_graph_iterator_next(it_handle)):
                 yield n.id
         finally:
-            lib.routex_graph_iterator_delete(it_handle)
+            lib.routx_graph_iterator_delete(it_handle)
 
     def __len__(self) -> int:
-        return lib.routex_graph_get_nodes(self.handle, None)
+        return lib.routx_graph_get_nodes(self.handle, None)
 
     def find_nearest_node(self, lat: float, lon: float) -> Node:
         """
@@ -626,7 +626,7 @@ class Graph(MutableMapping[int, Node]):
 
         If the graph is empty, raises KeyError.
         """
-        n = _node_from_c(lib.routex_graph_find_nearest_node(self.handle, lat, lon))
+        n = _node_from_c(lib.routx_graph_find_nearest_node(self.handle, lat, lon))
         if not n:
             raise KeyError("find_nearest_node on empty Graph")
         return n
@@ -634,7 +634,7 @@ class Graph(MutableMapping[int, Node]):
     def get_edges(self, from_: int) -> list[Edge]:
         """Gets all outgoing edges from a node with a given id."""
         c_ptr = POINTER(_Edge)()
-        c_ptr_len = lib.routex_graph_get_edges(self.handle, from_, byref(c_ptr))
+        c_ptr_len = lib.routx_graph_get_edges(self.handle, from_, byref(c_ptr))
         return [_edge_from_c(c_ptr[i]) for i in range(c_ptr_len)]
 
     def get_edge(self, from_: int, to: int) -> float:
@@ -642,7 +642,7 @@ class Graph(MutableMapping[int, Node]):
         Gets the cost of traversing an edge between nodes with provided ids.
         Returns positive infinity when the provided edge does not exist.
         """
-        return lib.routex_graph_get_edge(self.handle, from_, to)
+        return lib.routx_graph_get_edge(self.handle, from_, to)
 
     def set_edge(self, from_: int, to: int, cost: float) -> bool:
         """
@@ -656,7 +656,7 @@ class Graph(MutableMapping[int, Node]):
 
         Note that given an `Edge` object, this method may be called with `g.set_edge(from_, *edge)`.
         """
-        return lib.routex_graph_set_edge(self.handle, from_, _Edge(to=to, cost=cost))
+        return lib.routx_graph_set_edge(self.handle, from_, _Edge(to=to, cost=cost))
 
     def delete_edge(self, from_: int, to: int, /, missing_ok: bool = True) -> None:
         """
@@ -664,7 +664,7 @@ class Graph(MutableMapping[int, Node]):
 
         If no such edge exists and `missing_ok` is set to `False`, raises KeyError.
         """
-        removed = lib.routex_graph_delete_edge(self.handle, from_, to)
+        removed = lib.routx_graph_delete_edge(self.handle, from_, to)
         if not removed and not missing_ok:
             raise KeyError((from_, to))
 
@@ -690,9 +690,9 @@ class Graph(MutableMapping[int, Node]):
         which is usually very time consuming, especially on large datasets.
         """
         func = (
-            lib.routex_find_route_without_turn_around
+            lib.routx_find_route_without_turn_around
             if without_turn_around
-            else lib.routex_find_route
+            else lib.routx_find_route
         )
         res = func(self.handle, from_, to, step_limit)
         try:
@@ -704,9 +704,9 @@ class Graph(MutableMapping[int, Node]):
             elif res.type == 2:
                 raise StepLimitExceeded()
             else:
-                raise RuntimeError(f"routex_find_route returned unexpected result type: {res.type}")
+                raise RuntimeError(f"routx_find_route returned unexpected result type: {res.type}")
         finally:
-            lib.routex_route_result_delete(res)
+            lib.routx_route_result_delete(res)
 
     def add_from_osm_file(
         self,
@@ -732,7 +732,7 @@ class Graph(MutableMapping[int, Node]):
         if isinstance(filename, str):
             filename = filename.encode("utf-8")
 
-        ok = lib.routex_graph_add_from_osm_file(
+        ok = lib.routx_graph_add_from_osm_file(
             self.handle,
             _osm_options_to_c(profile, format, bbox),
             filename,
@@ -764,7 +764,7 @@ class Graph(MutableMapping[int, Node]):
         """
         mv = mv.cast("B")
         ptr = (c_char * len(mv)).from_buffer(mv)
-        ok = lib.routex_graph_add_from_osm_memory(
+        ok = lib.routx_graph_add_from_osm_memory(
             self.handle,
             _osm_options_to_c(profile, format, bbox),
             ptr,
@@ -788,14 +788,14 @@ class KDTree:
         self._handle = handle
 
     def __del__(self) -> None:
-        lib.routex_kd_tree_delete(self._handle)
+        lib.routx_kd_tree_delete(self._handle)
 
     @classmethod
     def build(cls, graph: Graph) -> Self:
         """
         Builds a k-d tree with all canonical (`id == osm_id`) nodes contained in the provided graph.
         """
-        return cls(lib.routex_kd_tree_new(graph.handle))
+        return cls(lib.routx_kd_tree_new(graph.handle))
 
     def find_nearest_node(self, lat: float, lon: float) -> Node:
         """
@@ -803,14 +803,14 @@ class KDTree:
 
         Raises KeyError when the k-d tree contains no nodes.
         """
-        nd = _node_from_c(lib.routex_kd_tree_find_nearest_node(self._handle, lat, lon))
+        nd = _node_from_c(lib.routx_kd_tree_find_nearest_node(self._handle, lat, lon))
         if nd.id == 0:
             raise KeyError("find_nearest_node on empty KDTree")
         return nd
 
 
 def earth_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    return lib.routex_earth_distance(lat1, lon1, lat2, lon2)
+    return lib.routx_earth_distance(lat1, lon1, lat2, lon2)
 
 
 def _node_to_c(o: Node) -> _Node:

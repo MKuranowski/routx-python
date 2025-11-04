@@ -309,12 +309,12 @@ class TestGraph(TestCase):
     def test_add_from_osm_file_error(self) -> None:
         g = Graph()
 
-        with self.assertRaises(OsmLoadingError), self.assertLogs("routex") as log_ctx:
+        with self.assertRaises(OsmLoadingError), self.assertLogs("routx") as log_ctx:
             g.add_from_osm_file("non_existing_file.osm", OsmProfile.CAR)
 
         self.assertListEqual(
             log_ctx.output,
-            ["ERROR:routex:non_existing_file.osm: io: No such file or directory (os error 2)"],
+            ["ERROR:routx:non_existing_file.osm: io: No such file or directory (os error 2)"],
         )
 
     def test_add_from_osm_memory(self) -> None:

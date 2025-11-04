@@ -1,8 +1,8 @@
 /builddir
 /dist
-/routex/libroutex.dll
-/routex/libroutex.dylib
-/routex/libroutex.so
+/routx/libroutx.dll
+/routx/libroutx.dylib
+/routx/libroutx.so
 /subprojects/*
 !/subprojects/*.wrap
 *.pyc
