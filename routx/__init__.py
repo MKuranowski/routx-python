@@ -18,15 +18,15 @@ from .wrapper import (
 
 __all__ = [
     "DEFAULT_STEP_LIMIT",
-    "StepLimitExceeded",
-    "OsmLoadingError",
-    "Node",
     "Edge",
-    "OsmPenalty",
-    "OsmProfile",
-    "OsmCustomProfile",
-    "OsmFormat",
     "Graph",
     "KDTree",
+    "Node",
+    "OsmCustomProfile",
+    "OsmFormat",
+    "OsmLoadingError",
+    "OsmPenalty",
+    "OsmProfile",
+    "StepLimitExceeded",
     "earth_distance",
 ]

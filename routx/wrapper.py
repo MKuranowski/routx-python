@@ -574,7 +574,7 @@ class Graph(MutableMapping[int, Node]):
     [MutableMapping interface](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
     from ids (integers) to nodes.
 
-    Node that overwriting existing nodes preserves all outgoing and incoming edges. Thus updating
+    Note that overwriting existing nodes preserves all outgoing and incoming edges. Thus updating
     a node position might result in violation of the Edge invariant and break route finding.
     It **is discouraged** to update nodes, and it is the caller's responsibility not to break
     this invariant.
@@ -812,6 +812,12 @@ class KDTree:
 
 
 def earth_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """
+    Calculates the great-circle distance between two positions using the
+    [haversine formula](https://en.wikipedia.org/wiki/Haversine_formula).
+
+    Returns the result in kilometers.
+    """
     return lib.routx_earth_distance(lat1, lon1, lat2, lon2)
 
 
