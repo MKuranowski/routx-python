@@ -6,7 +6,7 @@ build-backend = "mesonpy"
 name = "routx"
 version = "0.1.0"
 requires-python = "~=3.10"
-dependencies = []
+dependencies = ["typing-extensions ~= 4.15"]
 authors = [{name = "Mikołaj Kuranowski", email = "mkuranowski@gmail.com"}]
 
 [tool.meson-python.args]
