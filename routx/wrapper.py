@@ -34,8 +34,6 @@ from typing_extensions import Self
 
 if sys.platform.startswith("win32"):
     lib_filename = "libroutx.dll"
-elif sys.platform.startswith("darwin"):
-    lib_filename = "libroutx.dylib"
 else:
     lib_filename = "libroutx.so"
 
