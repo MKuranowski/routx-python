@@ -4,5 +4,5 @@
 /routx/libroutx.dylib
 /routx/libroutx.so
 /subprojects/*
-!/subprojects/*.wrap
+!/subprojects/routx.wrap
 *.pyc
