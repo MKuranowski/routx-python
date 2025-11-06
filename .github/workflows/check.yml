@@ -30,7 +30,7 @@ jobs:
         with:
           path: |
             builddir/
-          key: ${{ runner.os }}-build-${{ hashFiles('meson.build', 'pyproject.toml') }}
+          key: ${{ runner.os }}-build-${{ hashFiles('meson.build', 'pyproject.toml', 'subprojects/routx.wrap') }}
 
       - name: Build
         run: |
