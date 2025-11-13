@@ -8,6 +8,7 @@ project(
 py = import('python').find_installation(pure: false)
 py.install_sources(
   'routx/__init__.py',
+  'routx/py.typed',
   'routx/wrapper.py',
   preserve_path: true,
 )
