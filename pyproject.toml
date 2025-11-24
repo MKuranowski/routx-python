@@ -4,7 +4,7 @@ build-backend = "mesonpy"
 
 [project]
 name = "routx"
-version = "1.0.3"
+version = "1.0.4"
 readme = "README.md"
 requires-python = "~=3.10"
 dependencies = ["typing-extensions ~= 4.15"]

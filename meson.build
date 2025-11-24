@@ -1,7 +1,7 @@
 project(
   'routx-python',
   license: 'MIT',
-  version: '1.0.3',
+  version: '1.0.4',
   meson_version: '>= 1.3.0',
 )
 
