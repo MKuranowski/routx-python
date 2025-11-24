@@ -680,6 +680,9 @@ class Graph(MutableMapping[int, Node]):
         Finds the cheapest way between two nodes using the [A* algorithm](https://en.wikipedia.org/wiki/A*_search_algorithm).
         Returns a list node IDs of such route. The list may be empty if no route exists.
 
+        `from_id` must identify a specific node in the graph, and `to_id` must identify
+        a specific **canonical** node; otherwise KeyError is raised.
+
         `without_turn_around` defaults to `True` and prevents the algorithm from circumventing
         turn restrictions by suppressing unrealistic turn-around instructions (A-B-A).
         This introduces an extra dimension to the search space, so if the graph doesn't contain
