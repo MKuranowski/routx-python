@@ -681,7 +681,7 @@ class Graph(MutableMapping[int, Node]):
         Returns a list node IDs of such route. The list may be empty if no route exists.
 
         `from_id` must identify a specific node in the graph, and `to_id` must identify
-        a specific **canonical** node; otherwise KeyError is raised.
+        a specific **canonical** (`id == osm_id`) node; otherwise KeyError is raised.
 
         `without_turn_around` defaults to `True` and prevents the algorithm from circumventing
         turn restrictions by suppressing unrealistic turn-around instructions (A-B-A).
