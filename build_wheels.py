@@ -20,12 +20,15 @@ WHEEL_ABI_TAG = "none"
 #       https://doc.rust-lang.org/nightly/rustc/platform-support.html.
 #       The zig --target argument in cross/*.ini files also hard codes the supported ABI versions,
 #       but that is not used to compile anything, it's just so meson doesn't complain.
-# NOTE: "manylinux2014" is a legacy alias for "manylinux_2_17".
 
 CONFIGURATIONS = {
     "aarch64-linux-gnu": (
         MESON_CROSS_FILES_DIR / "aarch64-linux-gnu.ini",
-        "manylinux2014_aarch64.manylinux_2_17_aarch64",
+        "manylinux_2_17_aarch64",
+    ),
+    "aarch64-linux-musl": (
+        MESON_CROSS_FILES_DIR / "aarch64-linux-musl.ini",
+        "musllinux_1_1_aarch64",
     ),
     "aarch64-macos": (
         MESON_CROSS_FILES_DIR / "aarch64-macos.ini",
@@ -37,7 +40,11 @@ CONFIGURATIONS = {
     ),
     "x86_64-linux-gnu": (
         MESON_CROSS_FILES_DIR / "x86_64-linux-gnu.ini",
-        "manylinux2014_x86_64.manylinux_2_17_x86_64",
+        "manylinux_2_17_x86_64",
+    ),
+    "x86_64-linux-musl": (
+        MESON_CROSS_FILES_DIR / "x86_64-linux-musl.ini",
+        "musllinux_1_1_aarch64",
     ),
     "x86_64-macos": (
         MESON_CROSS_FILES_DIR / "x86_64-macos.ini",

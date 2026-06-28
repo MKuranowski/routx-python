@@ -17,13 +17,11 @@ access tags (on ways only) and turn restrictions.
 
 `pip install routx` in a [virtual environment](https://docs.python.org/3/library/venv.html).
 
-Precompiled wheels are available for most popular platforms (aarch64, x86-64 × GNU Linux, MacOS and Windows).
+Precompiled wheels are available for most popular platforms (aarch64, x86-64 × GNU Linux, musl Linux, MacOS and Windows).
 On anything else, [cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html)
 (please don't `curl | sh` and install from your system's package manager),
 [ninja and a C/C++ compiler toolchain](https://mesonbuild.com/Getting-meson.html#dependencies)
 are required to properly compile the library.
-
-Of note is the lack of support for musl-based Linux systems, due to [lacking Rust support](https://github.com/rust-lang/rust/issues/59302).
 
 ```python
 import routx
@@ -614,7 +612,6 @@ the simplified line is returned. Other elements are left undefined.
 Epsilon represents the maximum distance (in decimal degrees, as the implementation
 assumes flat, Euclidean geometry) for a point's distance to a line segment to
 be considered insignificant and therefore removed.
-
 
 
 ## License
