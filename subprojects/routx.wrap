@@ -1,6 +1,6 @@
 [wrap-git]
 url = https://github.com/mkuranowski/routx.git
-revision = a8ba61d4e48b6f82a7b3018c19e30e4d1ede2902
+revision = v1.1.0
 depth = 1
 
 [provide]
