@@ -101,6 +101,14 @@ class _OsmOptions(Structure):
     ]
 
 
+class _SerializedGraph(Structure):
+    _fields_ = [
+        ("content", c_char_p),
+        ("len", c_uint32),
+        ("capacity", c_uint32),
+    ]
+
+
 class _RouteResultOk(Structure):
     _fields_ = [
         ("nodes", POINTER(c_int64)),
@@ -191,6 +199,21 @@ lib.routx_graph_add_from_osm_memory.argtypes = [
 ]
 lib.routx_graph_add_from_osm_memory.restype = c_bool
 
+lib.routx_graph_read_from_file.argtypes = [_Graph_p, c_int, c_char_p]
+lib.routx_graph_read_from_file.restype = c_bool
+
+lib.routx_graph_read_from_memory.argtypes = [_Graph_p, c_int, c_char_p, c_size_t]
+lib.routx_graph_read_from_memory.restype = c_bool
+
+lib.routx_graph_write_to_file.argtypes = [_Graph_p, c_int, c_char_p]
+lib.routx_graph_write_to_file.restype = c_bool
+
+lib.routx_graph_write_to_memory.argtypes = [_Graph_p, c_int]
+lib.routx_graph_write_to_memory.restype = _SerializedGraph
+
+lib.routx_serialized_graph_delete.argtypes = [_SerializedGraph]
+lib.routx_serialized_graph_delete.restype = None
+
 lib.routx_find_route.argtypes = [_Graph_p, c_int64, c_int64, c_size_t]
 lib.routx_find_route.restype = _RouteResult
 
@@ -243,7 +266,16 @@ class StepLimitExceeded(ValueError):
 
 
 class OsmLoadingError(ValueError):
-    """Raised with the underlying library has failed to load OSM data data. See logs for details."""
+    """Raised when the underlying library has failed to load OSM data data. See logs for details."""
+
+    pass
+
+
+class SerializationError(ValueError):
+    """
+    Raised when the underlying library has failed to read/write graph data.
+    See logs for details.
+    """
 
     pass
 
@@ -574,6 +606,13 @@ class OsmFormat(IntEnum):
     """Force [OSM PBF](https://wiki.openstreetmap.org/wiki/PBF_Format)"""
 
 
+class GraphFormat(IntEnum):
+    """Wire format of a full/serialized Graph."""
+
+    BINARY = 1
+    """Custom, routx binary file format."""
+
+
 class Graph(MutableMapping[int, Node]):
     """
     OpenStreetMap-based network representation as a set of nodes and edges between them.
@@ -808,6 +847,66 @@ class Graph(MutableMapping[int, Node]):
         )
         if not ok:
             raise OsmLoadingError()
+
+    def read_from_file(
+        self,
+        filename: str | bytes | PathLike[str] | PathLike[bytes],
+        format: GraphFormat,
+    ) -> None:
+        """
+        Reads data from a serialized graph file, and adds it to the provided graph.
+        """
+        if isinstance(filename, PathLike):
+            filename = filename.__fspath__()
+        if isinstance(filename, str):
+            filename = filename.encode("utf-8")
+
+        ok = lib.routx_graph_read_from_file(self.handle, format.value, filename)
+        if not ok:
+            raise SerializationError()
+
+    def read_from_memory(self, mv: memoryview, format: GraphFormat) -> None:
+        """
+        Reads data from a serialized graph buffer, and adds it to the provided graph.
+
+        The buffer must be contiguous and also mutable (for reasons only known to
+        [ctypes](https://docs.python.org/3/library/ctypes.html#ctypes._CData.from_buffer),
+        because the underlying library takes a const pointer).
+        """
+        mv = mv.cast("B")
+        ptr = (c_char * len(mv)).from_buffer(mv)
+        ok = lib.routx_graph_read_from_memory(self.handle, format.value, ptr, len(mv))
+        if not ok:
+            raise SerializationError()
+
+    def write_to_file(
+        self,
+        filename: str | bytes | PathLike[str] | PathLike[bytes],
+        format: GraphFormat,
+    ) -> None:
+        """Writes graph data to a file, as per the selected wire format."""
+        if isinstance(filename, PathLike):
+            filename = filename.__fspath__()
+        if isinstance(filename, str):
+            filename = filename.encode("utf-8")
+
+        ok = lib.routx_graph_write_to_file(self.handle, format.value, filename)
+        if not ok:
+            raise SerializationError()
+
+    def write_to_memory(self, format: GraphFormat) -> bytearray:
+        """Writes graph data to an in-memory buffer, as per the selected wire format."""
+        res = lib.routx_graph_write_to_memory(self.handle, format.value)
+        try:
+            offset = _SerializedGraph.content.offset
+            ptr = c_void_p.from_buffer(res, offset).value
+            if ptr:
+                view = (c_char * int(res.len)).from_address(ptr)
+                return bytearray(view)
+            else:
+                raise SerializationError()
+        finally:
+            lib.routx_serialized_graph_delete(res)
 
 
 class KDTree:

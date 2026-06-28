@@ -218,6 +218,36 @@ this invariant.
     left (min lon), bottom (min lat), right (max lon), top (max lat).
     Ignored if all values are zero (default).
 
+- ```
+    def read_from_file(
+        self,
+        filename: str | bytes | PathLike[str] | PathLike[bytes],
+        format: GraphFormat,
+    ) -> None
+    ```
+
+    Reads data from a serialized graph file, and adds it to the provided graph.
+
+- `read_from_memory(self, mv: memoryview, format: GraphFormat) -> None` -
+    Reads data from a serialized graph buffer, and adds it to the provided graph.
+
+    The buffer must be contiguous and also mutable (for reasons only known to
+    [ctypes](https://docs.python.org/3/library/ctypes.html#ctypes._CData.from_buffer),
+    because the underlying library takes a const pointer).
+
+- ```
+    write_to_file(
+        self,
+        filename: str | bytes | PathLike[str] | PathLike[bytes],
+        format: GraphFormat,
+    ) -> None
+    ```
+
+    Writes graph data to a file, as per the selected wire format.
+
+- `write_to_memory(self, format: GraphFormat) -> bytearray` -
+    Writes graph data to an in-memory buffer, as per the selected wire format.
+
 ### routx.KDTree
 
 ```
@@ -232,6 +262,17 @@ class KDTree:
 *Class Methods*:
 - `KDTree.build(graph: Graph) -> Self` - builds a k-d tree with all canonical 
     (`id == osm_id`) nodes contained in the provided graph.
+
+### routx.GraphFormat
+
+```
+class GraphFormat(IntEnum):
+    BINARY = 1
+```
+
+Wire format of a full/serialized Graph. An [IntEnum](https://docs.python.org/3/library/enum.html#enum.IntEnum).
+
+- `BINARY` - Custom, routx binary file format.
 
 ### routx.OsmProfile
 
@@ -521,7 +562,16 @@ class OsmLoadingError(ValueError):
     pass  # attributes and constructor the same as for ValueError
 ```
 
-Raised with the underlying library has failed to load OSM data data. See logs for details.
+Raised when the underlying library has failed to load OSM data data. See logs for details.
+
+### routx.SerializationError
+
+```
+class SerializationError(ValueError):
+    pass
+```
+
+Raised when the underlying library has failed to read/write graph data. See logs for details.
 
 ### routx.StepLimitExceeded
 

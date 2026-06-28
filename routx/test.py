@@ -8,6 +8,7 @@ from unittest import TestCase
 
 from .wrapper import (
     Graph,
+    GraphFormat,
     KDTree,
     Node,
     OsmCustomProfile,
@@ -15,6 +16,7 @@ from .wrapper import (
     OsmLoadingError,
     OsmPenalty,
     OsmProfile,
+    SerializationError,
     StepLimitExceeded,
     earth_distance,
     simplify_line,
@@ -52,6 +54,30 @@ OSM_FILE_FIXTURE = (
     "</relation>\n"
     "</osm>\n"
 )
+
+
+def get_simple_fixture() -> Graph:
+    #   200   200   200
+    # 1─────2─────3─────4
+    #       └─────5─────┘
+    #         100    100
+    g = Graph()
+    g[1] = Node(1, 1, 0.01, 0.01)
+    g[2] = Node(2, 2, 0.02, 0.01)
+    g[3] = Node(3, 3, 0.03, 0.01)
+    g[4] = Node(4, 4, 0.04, 0.01)
+    g[5] = Node(5, 5, 0.03, 0.00)
+    g.set_edge(1, 2, 200.0)
+    g.set_edge(2, 1, 200.0)
+    g.set_edge(2, 3, 200.0)
+    g.set_edge(2, 5, 100.0)
+    g.set_edge(3, 2, 200.0)
+    g.set_edge(3, 4, 200.0)
+    g.set_edge(4, 3, 200.0)
+    g.set_edge(4, 5, 100.0)
+    g.set_edge(5, 2, 100.0)
+    g.set_edge(5, 4, 100.0)
+    return g
 
 
 class TestGraph(TestCase):
@@ -201,27 +227,7 @@ class TestGraph(TestCase):
             g.delete_edge(1, 42, missing_ok=False)
 
     def test_find_route(self) -> None:
-        #   200   200   200
-        # 1─────2─────3─────4
-        #       └─────5─────┘
-        #         100    100
-        g = Graph()
-        g[1] = Node(1, 1, 0.01, 0.01)
-        g[2] = Node(2, 2, 0.02, 0.01)
-        g[3] = Node(3, 3, 0.03, 0.01)
-        g[4] = Node(4, 4, 0.04, 0.01)
-        g[5] = Node(5, 5, 0.03, 0.00)
-        g.set_edge(1, 2, 200.0)
-        g.set_edge(2, 1, 200.0)
-        g.set_edge(2, 3, 200.0)
-        g.set_edge(2, 5, 100.0)
-        g.set_edge(3, 2, 200.0)
-        g.set_edge(3, 4, 200.0)
-        g.set_edge(4, 3, 200.0)
-        g.set_edge(4, 5, 100.0)
-        g.set_edge(5, 2, 100.0)
-        g.set_edge(5, 4, 100.0)
-
+        g = get_simple_fixture()
         self.assertEqual(
             g.find_route(1, 4, without_turn_around=False, step_limit=100),
             array("q", [1, 2, 5, 4]),
@@ -273,27 +279,7 @@ class TestGraph(TestCase):
         )
 
     def test_find_route_no_route(self) -> None:
-        #   200   200   200
-        # 1─────2─────3─────4
-        #       └─────5─────┘
-        #         100    100
-        g = Graph()
-        g[1] = Node(1, 1, 0.01, 0.01)
-        g[2] = Node(2, 2, 0.02, 0.01)
-        g[3] = Node(3, 3, 0.03, 0.01)
-        g[4] = Node(4, 4, 0.04, 0.01)
-        g[5] = Node(5, 5, 0.03, 0.00)
-        g.set_edge(1, 2, 200.0)
-        g.set_edge(2, 1, 200.0)
-        g.set_edge(2, 3, 200.0)
-        g.set_edge(2, 5, 100.0)
-        g.set_edge(3, 2, 200.0)
-        g.set_edge(3, 4, 200.0)
-        g.set_edge(4, 3, 200.0)
-        g.set_edge(4, 5, 100.0)
-        g.set_edge(5, 2, 100.0)
-        g.set_edge(5, 4, 100.0)
-
+        g = get_simple_fixture()
         with self.assertRaises(StepLimitExceeded):
             g.find_route(1, 4, step_limit=2)
 
@@ -301,6 +287,30 @@ class TestGraph(TestCase):
         g = Graph()
         with self.assertRaises(KeyError):
             g.find_route(1, 2)
+
+    def test_serialize_binary_round_trip_file(self) -> None:
+        with NamedTemporaryFile(mode="wb") as temp_file:
+            get_simple_fixture().write_to_file(temp_file.name, GraphFormat.BINARY)
+
+            g = Graph()
+            g.read_from_file(temp_file.name, GraphFormat.BINARY)
+
+            self.assertEqual(len(g), 5)
+            self.assertEqual(len(g.get_edges(2)), 3)
+
+    def test_serialize_binary_file_error(self) -> None:
+        with self.assertRaises(SerializationError):
+            Graph().read_from_file("non_existing_file.osm", GraphFormat.BINARY)
+
+    def test_serialize_binary_round_trip_memory(self) -> None:
+        data = get_simple_fixture().write_to_memory(GraphFormat.BINARY)
+        self.assertTrue(data.startswith(b"routx001"))
+
+        graph = Graph()
+        graph.read_from_memory(memoryview(data), GraphFormat.BINARY)
+
+        self.assertEqual(len(graph), 5)
+        self.assertEqual(len(graph.get_edges(2)), 3)
 
     def test_add_from_osm_file(self) -> None:
         with NamedTemporaryFile(mode="w", encoding="utf-8") as temp_file:
