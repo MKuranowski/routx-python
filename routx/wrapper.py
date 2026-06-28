@@ -685,7 +685,7 @@ class Graph(MutableMapping[int, Node]):
         /,
         without_turn_around: bool = True,
         step_limit: int = DEFAULT_STEP_LIMIT,
-    ) -> array[int]:
+    ) -> "array[int]":
         """
         Finds the cheapest way between two nodes using the [A* algorithm](https://en.wikipedia.org/wiki/A*_search_algorithm).
         Returns an [array](https://docs.python.org/3/library/array.html) of type `q`
@@ -721,7 +721,7 @@ class Graph(MutableMapping[int, Node]):
         finally:
             lib.routx_route_result_delete(res)
 
-    def simplify_route(self, route: Iterable[int], epsilon: float = 1e-5) -> array[int]:
+    def simplify_route(self, route: Iterable[int], epsilon: float = 1e-5) -> "array[int]":
         """Simplifies a route (sequence of nodes) using the Ramer-Douglas-Peucker algorithm.
 
         If `route` is an instance of an [array](https://docs.python.org/3/library/array.html)
@@ -855,7 +855,7 @@ def earth_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return lib.routx_earth_distance(lat1, lon1, lat2, lon2)
 
 
-def simplify_line(line: Iterable[float], epsilon: float = 1e-5) -> array[float]:
+def simplify_line(line: Iterable[float], epsilon: float = 1e-5) -> "array[float]":
     """Simplifies a line (an iterable of point coordinates) using
     the Ramer-Douglas-Peucker algorithm.
 
