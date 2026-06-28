@@ -20,7 +20,7 @@ access tags (on ways only) and turn restrictions.
 Precompiled wheels are available for most popular platforms (aarch64, x86-64 × GNU Linux, MacOS and Windows).
 On anything else, [cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html)
 (please don't `curl | sh` and install from your system's package manager),
-[ninja and C/C++ compiler toolchain](https://mesonbuild.com/Getting-meson.html#dependencies)
+[ninja and a C/C++ compiler toolchain](https://mesonbuild.com/Getting-meson.html#dependencies)
 are required to properly compile the library.
 
 Of note is the lack of support for musl-based Linux systems, due to [lacking Rust support](https://github.com/rust-lang/rust/issues/59302).
@@ -145,10 +145,11 @@ this invariant.
         /,
         without_turn_around: bool = True,
         step_limit: int = DEFAULT_STEP_LIMIT,
-    ) -> list[int]
+    ) -> array[int]
     ```
     Finds the cheapest way between two nodes using the [A* algorithm](https://en.wikipedia.org/wiki/A*_search_algorithm).
-    Returns a list node IDs of such route. The list may be empty if no route exists.
+    Returns an [array](https://docs.python.org/3/library/array.html) of type `q`
+    containing node IDs of such route. The array may be empty if no route exists.
 
     `from_id` must identify a specific node in the graph, and `to_id` must identify
     a specific **canonical** (`id == osm_id`) node; otherwise KeyError is raised.
@@ -156,11 +157,23 @@ this invariant.
     `without_turn_around` defaults to `True` and prevents the algorithm from circumventing
     turn restrictions by suppressing unrealistic turn-around instructions (A-B-A).
     This introduces an extra dimension to the search space, so if the graph doesn't contain
-    any turn restriction, this parameter should be set to `False`.
+    any turn restrictions, this parameter should be set to `False`.
 
     `step_limit` limits how many nodes can be expanded during search before raising StepLimitExceeded.
     Concluding that no route exists requires expanding all nodes accessible from the start,
     which is usually very time consuming, especially on large datasets.
+
+- `simplify_route(self, route: Iterable[int], epsilon: float = 1e-5) -> array[int]` -
+    Simplifies a route (sequence of nodes) using the Ramer-Douglas-Peucker algorithm.
+
+    If `line` is an instance of an [array](https://docs.python.org/3/library/array.html)
+    of type `q` (int64), then it is modified in-place, and a slice containing
+    the simplified route is returned. Other elements are left undefined. Note that
+    find_route returns such an array.
+
+    Epsilon represents the maximum distance (in decimal degrees, as the implementation
+    assumes flat, Euclidean geometry) for a point's distance to a line segment to
+    be considered insignificant and therefore removed.
 
 - ```
     add_from_osm_file(
@@ -533,6 +546,26 @@ def earth_distance(
 Calculates the great-circle distance between two positions using the [haversine formula](https://en.wikipedia.org/wiki/Haversine_formula).
 
 Returns the result in kilometers.
+
+### routx.simplify_line
+
+```
+simplify_line(line: Iterable[float], epsilon: float = 1e-5) -> array[float]
+```
+
+Simplifies a line (an iterable of point coordinates) using the Ramer-Douglas-Peucker algorithm.
+
+Points must be encoded as `[x0 y0 x1 y1 x2 y2 ...]`. Any odd trailing elements are ignored.
+
+If `line` is an instance of an [array](https://docs.python.org/3/library/array.html)
+of type `f` (float32), then it is modified in-place, and a slice containing
+the simplified line is returned. Other elements are left undefined.
+
+Epsilon represents the maximum distance (in decimal degrees, as the implementation
+assumes flat, Euclidean geometry) for a point's distance to a line segment to
+be considered insignificant and therefore removed.
+
+
 
 ## License
 

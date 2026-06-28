@@ -1,3 +1,7 @@
+# (c) Copyright 2025-2026 Mikołaj Kuranowski
+# SPDX-License-Identifier: MIT
+
+from array import array
 from math import inf
 from tempfile import NamedTemporaryFile
 from unittest import TestCase
@@ -13,6 +17,7 @@ from .wrapper import (
     OsmProfile,
     StepLimitExceeded,
     earth_distance,
+    simplify_line,
 )
 
 OSM_FILE_FIXTURE = (
@@ -217,14 +222,14 @@ class TestGraph(TestCase):
         g.set_edge(5, 2, 100.0)
         g.set_edge(5, 4, 100.0)
 
-        self.assertListEqual(
+        self.assertEqual(
             g.find_route(1, 4, without_turn_around=False, step_limit=100),
-            [1, 2, 5, 4],
+            array("q", [1, 2, 5, 4]),
         )
 
-        self.assertListEqual(
+        self.assertEqual(
             g.find_route(1, 4, without_turn_around=True, step_limit=100),
-            [1, 2, 5, 4],
+            array("q", [1, 2, 5, 4]),
         )
 
     def test_find_route_with_turn_restriction(self) -> None:
@@ -257,14 +262,14 @@ class TestGraph(TestCase):
         g.set_edge(5, 3, 10.0)
         g.set_edge(5, 4, 100.0)
 
-        self.assertListEqual(
+        self.assertEqual(
             g.find_route(1, 3, without_turn_around=False, step_limit=100),
-            [1, 20, 4, 2, 3],
+            array("q", [1, 20, 4, 2, 3]),
         )
 
-        self.assertListEqual(
+        self.assertEqual(
             g.find_route(1, 3, without_turn_around=True, step_limit=100),
-            [1, 20, 4, 5, 3],
+            array("q", [1, 20, 4, 5, 3]),
         )
 
     def test_find_route_no_route(self) -> None:
@@ -350,6 +355,21 @@ class TestEarthDistance(TestCase):
 
         self.assertAlmostEqual(earth_distance(*centrum, *stadion), 2.49049, places=5)
         self.assertAlmostEqual(earth_distance(*centrum, *falenica), 15.692483, places=5)
+
+
+class TestSimplifyLine(TestCase):
+    def test(self) -> None:
+        arr = array(
+            "f",
+            [0.0, 0.0, 0.55, 0.5, 1.0, 1.0, 0.7, 1.3, 0.2, 2.0, 0.25, 2.1, 0.6, 3.0, -0.1, 4.0],
+        )
+
+        simplified = simplify_line(arr, epsilon=0.1)
+
+        self.assertEqual(
+            simplified,
+            array("f", [0.0, 0.0, 1.0, 1.0, 0.2, 2.0, 0.6, 3.0, -0.1, 4.0]),
+        )
 
 
 class TestKDTree(TestCase):

@@ -1,9 +1,10 @@
-# (c) Copyright 2025 Mikołaj Kuranowski
+# (c) Copyright 2025-2026 Mikołaj Kuranowski
 # SPDX-License-Identifier: MIT
 
 import logging
 import sys
-from collections.abc import Iterator, MutableMapping
+from array import array
+from collections.abc import Iterable, Iterator, MutableMapping
 from ctypes import (
     CFUNCTYPE,
     POINTER,
@@ -21,12 +22,15 @@ from ctypes import (
     c_void_p,
 )
 from ctypes import cast as c_cast
-from ctypes import cdll, pointer
+from ctypes import (
+    cdll,
+    pointer,
+)
 from dataclasses import dataclass
 from enum import IntEnum
 from os import PathLike
 from pathlib import Path
-from typing import Any, Final, NamedTuple
+from typing import Any, Final, NamedTuple, cast
 
 from typing_extensions import Self
 
@@ -173,6 +177,9 @@ lib.routx_graph_set_edge.restype = c_bool
 lib.routx_graph_delete_edge.argtypes = [_Graph_p, c_int64, c_int64]
 lib.routx_graph_delete_edge.restype = c_bool
 
+lib.routx_graph_simplify_route.argtypes = [_Graph_p, POINTER(c_int64), c_size_t, c_float]
+lib.routx_graph_simplify_route.restype = c_size_t
+
 lib.routx_graph_add_from_osm_file.argtypes = [_Graph_p, POINTER(_OsmOptions), c_char_p]
 lib.routx_graph_add_from_osm_file.restype = c_bool
 
@@ -204,6 +211,9 @@ lib.routx_kd_tree_find_nearest_node.restype = _Node
 
 lib.routx_earth_distance.argtypes = [c_float, c_float, c_float, c_float]
 lib.routx_earth_distance.restype = c_float
+
+lib.routx_simplify_line.argtypes = [POINTER(c_float), c_size_t, c_float]
+lib.routx_simplify_line.restype = c_size_t
 
 
 # Wire up logging
@@ -675,10 +685,11 @@ class Graph(MutableMapping[int, Node]):
         /,
         without_turn_around: bool = True,
         step_limit: int = DEFAULT_STEP_LIMIT,
-    ) -> list[int]:
+    ) -> array[int]:
         """
         Finds the cheapest way between two nodes using the [A* algorithm](https://en.wikipedia.org/wiki/A*_search_algorithm).
-        Returns a list node IDs of such route. The list may be empty if no route exists.
+        Returns an [array](https://docs.python.org/3/library/array.html) of type `q`
+        containing node IDs of such route. The array may be empty if no route exists.
 
         `from_id` must identify a specific node in the graph, and `to_id` must identify
         a specific **canonical** (`id == osm_id`) node; otherwise KeyError is raised.
@@ -686,7 +697,7 @@ class Graph(MutableMapping[int, Node]):
         `without_turn_around` defaults to `True` and prevents the algorithm from circumventing
         turn restrictions by suppressing unrealistic turn-around instructions (A-B-A).
         This introduces an extra dimension to the search space, so if the graph doesn't contain
-        any turn restriction, this parameter should be set to `False`.
+        any turn restrictions, this parameter should be set to `False`.
 
         `step_limit` limits how many nodes can be expanded during search before raising StepLimitExceeded.
         Concluding that no route exists requires expanding all nodes accessible from the start,
@@ -700,8 +711,7 @@ class Graph(MutableMapping[int, Node]):
         res = func(self.handle, from_, to, step_limit)
         try:
             if res.type == 0:
-                # TODO: Could we return a memoryview with type "q"?
-                return [res.as_ok.nodes[i] for i in range(res.as_ok.len)]
+                return array("q", (res.as_ok.nodes[i] for i in range(res.as_ok.len)))
             elif res.type == 1:
                 raise KeyError(res.as_invalid_reference.invalid_node_id)
             elif res.type == 2:
@@ -710,6 +720,29 @@ class Graph(MutableMapping[int, Node]):
                 raise RuntimeError(f"routx_find_route returned unexpected result type: {res.type}")
         finally:
             lib.routx_route_result_delete(res)
+
+    def simplify_route(self, route: Iterable[int], epsilon: float = 1e-5) -> array[int]:
+        """Simplifies a route (sequence of nodes) using the Ramer-Douglas-Peucker algorithm.
+
+        If `route` is an instance of an [array](https://docs.python.org/3/library/array.html)
+        of type `q` (int64), then it is modified in-place, and a slice containing
+        the simplified route is returned. Other elements are left undefined. Note that
+        find_route returns such an array.
+
+        Epsilon represents the maximum distance (in decimal degrees, as the implementation
+        assumes flat, Euclidean geometry) for a point's distance to a line segment to
+        be considered insignificant and therefore removed.
+        """
+        if isinstance(route, array) and route.typecode == "q":
+            arr = route
+        else:
+            arr = array("q", route)
+        c_array = (c_int64 * len(arr)).from_buffer(arr)
+        new_len = cast(
+            int,
+            lib.routx_graph_simplify_route(self.handle, c_array, len(arr), epsilon),
+        )
+        return arr[:new_len]
 
     def add_from_osm_file(
         self,
@@ -820,6 +853,30 @@ def earth_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     Returns the result in kilometers.
     """
     return lib.routx_earth_distance(lat1, lon1, lat2, lon2)
+
+
+def simplify_line(line: Iterable[float], epsilon: float = 1e-5) -> array[float]:
+    """Simplifies a line (an iterable of point coordinates) using
+    the Ramer-Douglas-Peucker algorithm.
+
+    Points must be encoded as `[x0 y0 x1 y1 x2 y2 ...]`. Any odd trailing elements are ignored.
+
+    If `line` is an instance of an [array](https://docs.python.org/3/library/array.html)
+    of type `f` (float32), then it is modified in-place, and a slice containing
+    the simplified line is returned. Other elements are left undefined.
+
+    Epsilon represents the maximum distance (in decimal degrees, as the implementation
+    assumes flat, Euclidean geometry) for a point's distance to a line segment to
+    be considered insignificant and therefore removed.
+    """
+    if isinstance(line, array) and line.typecode == "f":
+        arr = line
+    else:
+        arr = array("f", line)
+
+    c_array = (c_float * len(arr)).from_buffer(arr)
+    new_len = cast(int, lib.routx_simplify_line(c_array, len(arr), epsilon))
+    return arr[:new_len]
 
 
 def _node_to_c(o: Node) -> _Node:

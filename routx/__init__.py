@@ -1,4 +1,4 @@
-# (c) Copyright 2025 Mikołaj Kuranowski
+# (c) Copyright 2025-2026 Mikołaj Kuranowski
 # SPDX-License-Identifier: MIT
 
 from .wrapper import (
@@ -14,6 +14,7 @@ from .wrapper import (
     OsmProfile,
     StepLimitExceeded,
     earth_distance,
+    simplify_line,
 )
 
 __all__ = [
@@ -29,13 +30,14 @@ __all__ = [
     "OsmProfile",
     "StepLimitExceeded",
     "earth_distance",
+    "simplify_line",
 ]
 
 __title__ = "routx"
-__description__ = "Simple routing over OpenStreetMap data "
+__description__ = "Simple routing over OpenStreetMap data"
 __url__ = "https://github.com/MKuranowski/routx-python"
 __author__ = "Mikołaj Kuranowski"
-__copyright__ = "© Copyright 2025 Mikołaj Kuranowski"
+__copyright__ = "© Copyright 2025-2026 Mikołaj Kuranowski"
 __license__ = "MIT"
-__version__ = "1.0.5"
+__version__ = "1.1.0-pre1"
 __email__ = "mkuranowski+pypackages@gmail.com"
