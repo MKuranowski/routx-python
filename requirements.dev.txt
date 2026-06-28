@@ -1,4 +1,4 @@
 -r requirements.txt
 meson-python
-black~=25.1
-isort~=5.13
+black~=26.1
+isort~=8.0.1
