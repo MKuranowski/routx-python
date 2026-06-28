@@ -44,7 +44,7 @@ CONFIGURATIONS = {
     ),
     "x86_64-linux-musl": (
         MESON_CROSS_FILES_DIR / "x86_64-linux-musl.ini",
-        "musllinux_1_1_aarch64",
+        "musllinux_1_1_x86_64",
     ),
     "x86_64-macos": (
         MESON_CROSS_FILES_DIR / "x86_64-macos.ini",
